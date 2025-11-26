@@ -6,11 +6,16 @@ import io
 
 app = FastAPI()
 
-# CORS – allow frontend from anywhere (for now)
+# 👇 Yaha apna GitHub Pages origin daal
+origins = [
+    "https://ayushsingh16x.github.io",  # tera GitHub Pages root
+    "http://localhost:8000",            # optional local test
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # production me domain specify kar sakta hai
-    allow_credentials=True,
+    allow_origins=origins,
+    allow_credentials=False,   # "*" + credentials nahi chalega, isliye False
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -34,5 +39,5 @@ async def remove_background(file: UploadFile = File(...)):
     return StreamingResponse(
         io.BytesIO(output_bytes),
         media_type="image/png",
-        headers={"Content-Disposition": 'inline; filename="output.png"'}
+        headers={"Content-Disposition": 'inline; filename=\"output.png\"'}
     )
