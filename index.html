@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>BG Remover - Free</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #060712;
+            color: #f5f5f5;
+            margin: 0;
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .card {
+            background: #151625;
+            border-radius: 16px;
+            padding: 20px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.6);
+        }
+        
+        h1 {
+            margin-top: 0;
+            font-size: 22px;
+        }
+        
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #3b82f6;
+            color: white;
+            margin-top: 8px;
+        }
+        
+        button:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+        
+        .preview {
+            display: flex;
+            gap: 16px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .preview-block {
+            flex: 1 1 250px;
+            text-align: center;
+        }
+        
+        img {
+            max-width: 100%;
+            border-radius: 10px;
+            background: #222;
+        }
+        
+        #status {
+            margin-top: 10px;
+            min-height: 20px;
+            font-size: 14px;
+            color: #e5e5e5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>Background Remover (Self Hosted)</h1>
+        <p style="font-size: 13px; opacity: 0.8;">
+            Upload image → backend pe AI chalega → transparent PNG download. (Agle level ka jugaad, par free 😎)
+        </p>
+
+        <input type="file" id="fileInput" accept="image/*" />
+        <br />
+        <button id="removeBtn" disabled>Remove Background</button>
+
+        <div id="status"></div>
+
+        <div class="preview">
+            <div class="preview-block">
+                <h3>Original</h3>
+                <img id="originalImg" src="" alt="Original" />
+            </div>
+            <div class="preview-block">
+                <h3>Result</h3>
+                <img id="resultImg" src="" alt="Result" />
+                <br />
+                <button id="downloadBtn" style="display:none; margin-top:10px;">
+          Download PNG
+        </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 👉 yahan apna Render backend URL daalna
+        const API_URL = "https://bg-remover-api.onrender.com/remove-bg"; // <-- change this
+
+        const fileInput = document.getElementById("fileInput");
+        const removeBtn = document.getElementById("removeBtn");
+        const statusEl = document.getElementById("status");
+        const originalImg = document.getElementById("originalImg");
+        const resultImg = document.getElementById("resultImg");
+        const downloadBtn = document.getElementById("downloadBtn");
+
+        let resultBlob = null;
+
+        fileInput.addEventListener("change", () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                removeBtn.disabled = true;
+                originalImg.src = "";
+                resultImg.src = "";
+                downloadBtn.style.display = "none";
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                originalImg.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            removeBtn.disabled = false;
+            resultImg.src = "";
+            downloadBtn.style.display = "none";
+            statusEl.textContent = "";
+        });
+
+        removeBtn.addEventListener("click", async() => {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            removeBtn.disabled = true;
+            statusEl.textContent = "Processing... ruk ja zara, sabar kar 😑";
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    let msg = "Server error";
+                    try {
+                        const err = await res.json();
+                        msg = err.detail || msg;
+                    } catch (_) {}
+                    throw new Error(msg);
+                }
+
+                const blob = await res.blob();
+                resultBlob = blob;
+                const url = URL.createObjectURL(blob);
+                resultImg.src = url;
+                downloadBtn.style.display = "inline-block";
+                statusEl.textContent = "Ho gaya bhai, ab download kar.";
+
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = "Error: " + err.message;
+            } finally {
+                removeBtn.disabled = false;
+            }
+        });
+
+        downloadBtn.addEventListener("click", () => {
+            if (!resultBlob) return;
+            const url = URL.createObjectURL(resultBlob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "bg_removed.png";
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+
+</html>
